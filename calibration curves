@@ -1,0 +1,43 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.calibration import calibration_curve
+import os
+
+
+train_data = pd.read_excel(r"C:\train.xlsx")
+valid_data = pd.read_excel(r"C:\test.xlsx")
+
+
+model_columns = [col for col in train_data.columns if col not in ["Time", "Label"]]
+
+
+output_folder = r"C:\Calibration_Curves"
+os.makedirs(output_folder, exist_ok=True)
+
+
+def plot_calibration(data, model_cols, dataset_name):
+    for model in model_cols:
+        y_true = data["Label"]
+        y_prob = data[model]
+        prob_true, prob_pred = calibration_curve(y_true, y_prob, n_bins=5, strategy='uniform')
+
+
+        plt.figure(figsize=(6,6))
+        plt.plot(prob_pred, prob_true, marker='o', label="Calibration")
+        plt.plot([0, 1], [0, 1], "k--", label="Perfect Calibration")
+        plt.xlabel("Mean Predicted Probability", fontsize=12)
+        plt.ylabel("Fraction of Positives", fontsize=12)
+        plt.title(f"Calibration Curve - {model} ({dataset_name})", fontsize=14)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+
+
+        plt.savefig(os.path.join(output_folder, f"{model}_{dataset_name}_calibration.png"), dpi=300)
+        plt.close()
+
+
+plot_calibration(train_data, model_columns, "Train")
+plot_calibration(valid_data, model_columns, "Valid")
+
+print("ok")
