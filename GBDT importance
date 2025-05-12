@@ -1,0 +1,54 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.calibration import calibration_curve
+from lifelines.utils import concordance_index
+from sksurv.util import Surv
+from sksurv.metrics import cumulative_dynamic_auc
+
+# pip install scikit-survival lifelines
+
+
+train_df = pd.read_csv('C:/train.csv')
+val_df = pd.read_csv('C:/test.csv')
+
+
+X_train = train_df.drop(columns=["Time", "Status"])
+y_train = train_df[["Status", "Time"]]
+X_val = val_df.drop(columns=["Time", "Status"])
+y_val = val_df[["Status", "Time"]]
+
+model = GradientBoostingClassifier(
+    loss='log_loss',
+    n_estimators=100,
+    learning_rate=0.1,
+    max_depth=3,
+    random_state=42
+)
+model.fit(X_train, y_train["Status"])
+
+
+train_pred_prob = model.predict_proba(X_train)[:, 1]
+val_pred_prob = model.predict_proba(X_val)[:, 1]
+
+
+cindex_train = concordance_index(y_train["Time"], -train_pred_prob, y_train["Status"])
+cindex_val = concordance_index(y_val["Time"], -val_pred_prob, y_val["Status"])
+
+print(f"Train C-index: {cindex_train:.3f}")
+print(f"Validation C-index: {cindex_val:.3f}")
+
+importances = model.feature_importances_
+
+nonzero_idx = np.where(importances > 0)[0]
+sorted_idx = np.argsort(importances[nonzero_idx])[::-1]
+
+plt.figure(figsize=(10, 8))
+plt.barh(range(len(sorted_idx)), importances[nonzero_idx][sorted_idx][::-1])
+plt.yticks(range(len(sorted_idx)), X_train.columns[nonzero_idx][sorted_idx][::-1], fontsize=14)  # 字体调大！
+plt.xlabel("Feature Importance", fontsize=16)
+plt.title("Top Feature Importance (HistGBDT)", fontsize=18)
+plt.xticks(fontsize=14)
+plt.tight_layout()
+plt.show()
