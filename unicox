@@ -1,0 +1,51 @@
+library(survival)
+library(survminer)
+
+
+data <- read.csv("D:/train.csv")
+
+
+time <- data$Time
+status <- data$Status
+other_variables <- data[, !names(data) %in% c("Time", "Status")]
+
+
+cox_results <- data.frame(
+  Variable = character(),
+  HR = numeric(),
+  CI_lower = numeric(),
+  CI_upper = numeric(),
+  P_value = numeric(),
+  C_index = numeric(),
+  stringsAsFactors = FALSE
+)
+
+
+for (var in names(other_variables)) {
+
+  formula <- as.formula(paste("Surv(time, status) ~", var))
+  
+  cox_model <- coxph(formula, data = data)
+  
+
+  hr <- exp(coef(cox_model))
+  ci <- exp(confint(cox_model))
+  p_value <- summary(cox_model)$coef[5]
+  
+
+  c_index <- summary(cox_model)$concordance[1]
+  
+
+  cox_results <- rbind(cox_results, data.frame(
+    Variable = var,
+    HR = hr,
+    CI_lower = ci[1],
+    CI_upper = ci[2],
+    P_value = p_value,
+    C_index = c_index,
+    stringsAsFactors = FALSE
+  ))
+}
+
+
+print(cox_results)
