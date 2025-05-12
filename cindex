@@ -1,0 +1,6 @@
+library(survival) 
+d<-read.csv("D:/Finaltest.csv",header = TRUE)
+fit <- coxph(Surv(time, event) ~ o5,data = d) 
+sum.surv<- summary(fit) 
+c_index <- sum.surv$concordance 
+c_index
