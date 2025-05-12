@@ -1,0 +1,46 @@
+import numpy as np
+
+dca_output_folder = r"C:\Decision_Curves"
+os.makedirs(dca_output_folder, exist_ok=True)
+
+
+def plot_decision_curve(data, label_col, prob_cols, dataset_name):
+    thresholds = np.linspace(0.01, 0.99, 99)
+    plt.figure(figsize=(8, 6))
+
+    label = data[label_col]
+
+    for model in prob_cols:
+        prob = data[model]
+        net_benefits = []
+        for thresh in thresholds:
+            tp = ((prob >= thresh) & (label == 1)).sum()
+            fp = ((prob >= thresh) & (label == 0)).sum()
+            n = len(label)
+            nb = tp / n - fp / n * (thresh / (1 - thresh))
+            net_benefits.append(nb)
+        plt.plot(thresholds, net_benefits, label=model.strip(), lw=2)
+
+    # Treat-all and Treat-none
+    event_rate = label.mean()
+    treat_all = [event_rate - (1 - event_rate) * (t / (1 - t)) for t in thresholds]
+    treat_none = [0 for _ in thresholds]
+    plt.plot(thresholds, treat_all, "k--", label="Treat All")
+    plt.plot(thresholds, treat_none, "k:", label="Treat None")
+
+    plt.xlabel("Threshold Probability", fontsize=12)
+    plt.ylabel("Net Benefit", fontsize=12)
+    plt.title(f"Decision Curve Analysis - {dataset_name}", fontsize=14)
+    plt.legend(loc="best", fontsize=10)
+    plt.grid(True)
+    plt.tight_layout()
+
+
+    plt.savefig(os.path.join(dca_output_folder, f"{dataset_name}_Decision_Curve.png"), dpi=300)
+    plt.close()
+
+
+plot_decision_curve(train_data, "Label", model_columns, "Train")
+plot_decision_curve(valid_data, "Label", model_columns, "Valid")
+
+print("ok")
